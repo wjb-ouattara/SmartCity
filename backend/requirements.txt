@@ -1,0 +1,31 @@
+# FastAPI & Server
+fastapi==0.109.0
+uvicorn[standard]==0.40.0
+python-multipart==0.0.22
+
+# MongoDB
+pymongo==4.16.0
+motor==3.7.1
+
+# CORS
+fastapi-cors==0.0.6
+
+# Data Processing
+pandas==2.3.3
+numpy==2.2.6
+
+# Hadoop
+hdfs==3.4.1
+
+# Environment
+python-dotenv==1.2.1
+
+# WebSocket
+websockets==16.0
+
+# Validation
+pydantic==2.12.5
+pydantic-settings==2.12.0
+
+# Utils
+python-dateutil==2.9.0.post0
