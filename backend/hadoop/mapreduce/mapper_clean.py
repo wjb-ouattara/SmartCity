@@ -56,18 +56,26 @@ for line in sys.stdin:
                 key = "{}_{}".format(v_id, ts)
                 print("{}\tGPS|{},{}".format(key, x, y))
 
+        
         # CAS 3 : EMISSIONS
         elif 'emissions' in data and 'vehicule_id' in data and 'position' not in data:
-            v_id = data['vehicule_id']
-            ts = data['timestamp']
-            emi = data['emissions']
-            co2 = float(emi.get('co2', 0))
-            noise = float(emi.get('noise', 0))
-            fuel = float(emi.get('fuel', 0))
+            try:
+                v_id = data['vehicule_id']
+                ts = data['timestamp']
+                emi = data['emissions']
 
-            if (MIN_CO2 <= co2 <= MAX_CO2) and (0 <= noise <= MAX_NOISE_DB) and (fuel >= 0):
+                co2 = float(emi.get('co2', 0.0))
+                noise = float(emi.get('noise', 0.0))
+                fuel = float(emi.get('fuel', 0.0))
+                # javais oublier
+                co = float(emi.get('co', 0.0))
+                nox = float(emi.get('nox', 0.0))
+                pmx = float(emi.get('pmx', 0.0))
                 key = "{}_{}".format(v_id, ts)
-                print("{}\tEMI|{},{},{}".format(key, co2, noise, fuel))
-
-    except (ValueError, KeyError, TypeError):
+                print("{}\tEMI|{},{},{},{},{},{}".format(key, co2, noise, fuel, co, nox, pmx))
+            
+            except (ValueError, TypeError):
+                continue
+    except Exception:
         continue
+  
