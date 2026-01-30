@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Mapper: Agrégation par Zone et Timestamp
-Input: Résultat de reducer_fusion.py
-Output: (zone, timestamp) -> (speed, co2, noise, count)
+Input: Résultat de reducer_fusion.py (avec CO, NOx, PMx)
+Output: (zone, timestamp) -> (speed, co2, noise, co, nox, pmx, count)
 """
 
 import sys
@@ -26,60 +26,64 @@ def get_zone(x, y):
             return zone_name
     return 'Autre'
 
-def calculate_speed_kmh(x1, y1, x2, y2, time_diff):
-    """Calcule la vitesse en km/h entre 2 points"""
-    if time_diff <= 0:
-        return 0
-    distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-    # Conversion mètres/seconde en km/h (approximation)
-    speed_ms = distance / time_diff
-    return speed_ms * 3.6
-
 for line in sys.stdin:
     line = line.strip()
     if not line:
         continue
     
-    # Format: vehicule_id | timestamp | x,y | co2,noise,fuel
+    # Format attendu en entrée : 
+    # vehicule_id | timestamp | x,y | co2,noise,fuel,co,nox,pmx
     parts = line.split('\t')
     
-    # Ignorer les lignes LIEU (traitées séparément)
-    if parts[0] == 'LIEU':
-        continue
-    
-    if len(parts) != 4:
+    # Ignorer les lignes LIEU (traitées séparément) ou incomplètes
+    if parts[0] == 'LIEU' or len(parts) != 4:
         continue
     
     try:
         vehicule_id = parts[0]
         timestamp = int(parts[1])
         
-        # Position
+        # Position (x,y)
         x, y = parts[2].split(',')
         x = float(x)
         y = float(y)
         
-        # Emissions
-        co2, noise, fuel = parts[3].split(',')
-        co2 = float(co2)
-        noise = float(noise)
-        fuel = float(fuel)
+        # Emissions (Parsing Robuste)
+        # On découpe la partie droite
+        emi_parts = parts[3].split(',')
+        
+        # Les 3 classiques
+        co2 = float(emi_parts[0])
+        noise = float(emi_parts[1])
+        fuel = float(emi_parts[2])
+        
+        # Les 3 nouveaux (avec sécurité si jamais ils manquent dans de vieilles données)
+        co = 0.0
+        nox = 0.0
+        pmx = 0.0
+        
+        if len(emi_parts) >= 6:
+            co = float(emi_parts[3])
+            nox = float(emi_parts[4])
+            pmx = float(emi_parts[5])
         
         # Déterminer la zone
         zone = get_zone(x, y)
         
-        # Calculer vitesse approximative (on utilise le déplacement)
-        # Pour simplifier, on suppose une vitesse basée sur le fuel consommé
-        # Plus de fuel = plus de vitesse (approximation)
+        # Calculer vitesse approximative (Heuristique basée sur fuel)
         estimated_speed = min(fuel * 0.1, 100) if fuel > 0 else 0
         
         # Clé: zone|timestamp
-        # Valeur: speed|co2|noise|1 (count)
         key = "{}|{}".format(zone, timestamp)
-        value = "{:.2f}|{:.2f}|{:.2f}|1".format(estimated_speed, co2, noise)
+        
+        # Valeur: speed|co2|noise|co|nox|pmx|1 (count)
+        # On passe TOUTES les infos au reducer
+        value = "{:.2f}|{:.2f}|{:.2f}|{:.2f}|{:.2f}|{:.2f}|1".format(
+            estimated_speed, co2, noise, co, nox, pmx
+        )
         
         print("{}\t{}".format(key, value))
         
     except (ValueError, IndexError) as e:
-        # Ignorer les lignes mal formées
+        # Ignorer les lignes mal formées (texte au lieu de nombre, etc.)
         continue
